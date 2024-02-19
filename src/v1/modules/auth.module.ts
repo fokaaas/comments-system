@@ -12,7 +12,7 @@ import { ConfigurationModule } from './configuration.module';
   imports: [
     DatabaseModule,
     MailModule,
-    // ConfigurationModule,
+    ConfigurationModule,
     JwtModule.register({
       global: true,
       secret: process.env.SECRET,

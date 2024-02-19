@@ -7,6 +7,7 @@ import config from './configs/config';
   imports: [
     AuthModule,
     ConfigModule.forRoot({
+      isGlobal: true,
       load: [config],
     }),
   ],
