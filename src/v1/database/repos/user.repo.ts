@@ -19,4 +19,11 @@ export class UserRepo {
       where,
     });
   }
+
+  async updateById (id: string, data: Prisma.UserUncheckedUpdateInput) {
+    return this.prisma.user.update({
+      where: { id },
+      data,
+    });
+  }
 }

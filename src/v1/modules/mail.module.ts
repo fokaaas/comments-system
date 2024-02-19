@@ -2,19 +2,18 @@ import { Module } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { join } from 'path';
-import { MailService } from '../services/mail.service';
+import { MailService } from '../api/services/mail.service';
+import * as process from 'process';
 
 @Module({
   imports: [
     MailerModule.forRoot({
-      // transport: 'smtps://user@example.com:topsecret@smtp.example.com',
-      // or
       transport: {
-        host: 'smtp.gmail.com',
+        host: process.env.SMTP_HOST,
         secure: false,
         auth: {
-          user: '',
-          pass: '',
+          user: process.env.SMTP_USERNAME,
+          pass: process.env.SMTP_PASSWORD,
         },
       },
       defaults: {
