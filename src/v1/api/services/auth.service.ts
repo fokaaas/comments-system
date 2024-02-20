@@ -195,7 +195,7 @@ export class AuthService {
     }
   }
 
-  async login (user: User) {
+  async loginOrRefresh (user: User) {
     await this.checkSessions(user.id);
     const tokens = this.getTokens(user);
     await this.saveRefreshToken(user.id, tokens.refreshToken);

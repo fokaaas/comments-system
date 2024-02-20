@@ -5,9 +5,11 @@ import { DatabaseModule } from '../database/database.module';
 import { MailModule } from './mail.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigurationModule } from './configuration.module';
+import { LocalStrategy } from '../security/strategies/local.strategy';
+import { RefreshStrategy } from '../security/strategies/refresh.strategy';
 
 @Module({
-  providers: [AuthService],
+  providers: [AuthService, LocalStrategy, RefreshStrategy],
   controllers: [AuthController],
   imports: [
     DatabaseModule,

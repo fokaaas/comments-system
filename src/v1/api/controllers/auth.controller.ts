@@ -4,6 +4,7 @@ import { AuthService } from '../services/auth.service';
 import { RegistrationDto } from '../dto/registration.dto';
 import { VerificationDto } from '../dto/verification.dto';
 import { LocalAuthGuard } from '../../security/guards/local-auth.guard';
+import { RefreshAuthGuard } from '../../security/guards/refresh-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -41,7 +42,18 @@ export class AuthController {
     @Req() req,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const { refreshToken, ...accessToken } = await this.authService.login(req.user);
+    const { refreshToken, ...accessToken } = await this.authService.loginOrRefresh(req.user);
+    response.cookie('refresh', refreshToken);
+    return accessToken;
+  }
+
+  @UseGuards(RefreshAuthGuard)
+  @Post('/refresh')
+  async refresh (
+    @Req() req,
+    @Res({ passthrough: true }) response: Response
+  ) {
+    const { refreshToken, ...accessToken } = await this.authService.loginOrRefresh(req.user);
     response.cookie('refresh', refreshToken);
     return accessToken;
   }
