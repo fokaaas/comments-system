@@ -16,6 +16,7 @@ export class RefreshStrategy extends PassportStrategy(Strategy, 'refresh') {
   ) {
     super({
       jwtFromRequest: fromExtractors([cookieExtractor]),
+      ignoreExpiration: false,
       secretOrKey: process.env.SECRET,
     });
   }

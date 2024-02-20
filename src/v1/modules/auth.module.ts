@@ -7,9 +7,10 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigurationModule } from './configuration.module';
 import { LocalStrategy } from '../security/strategies/local.strategy';
 import { RefreshStrategy } from '../security/strategies/refresh.strategy';
+import { JwtStrategy } from '../security/strategies/jwt.strategy';
 
 @Module({
-  providers: [AuthService, LocalStrategy, RefreshStrategy],
+  providers: [AuthService, LocalStrategy, RefreshStrategy, JwtStrategy],
   controllers: [AuthController],
   imports: [
     DatabaseModule,
