@@ -11,7 +11,9 @@ import { TokenExpiredException } from '../../exceptions/token-expired.exception'
 import { JwtService } from '@nestjs/jwt';
 import { JwtConfig } from '../../configs/jwt.config';
 import { TooManyActionsException } from '../../exceptions/too-many-actions.exceptions';
-import { Rule } from 'eslint';
+import { ConfigService } from '@nestjs/config';
+
+const SESSIONS = 5;
 
 const MINUTE = 1000 * 60;
 const HOUR = MINUTE * 60;
@@ -24,6 +26,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private jwtConfig: JwtConfig,
+    private configService: ConfigService,
   ) {}
 
   private avatars = [
@@ -121,11 +124,12 @@ export class AuthService {
   }
 
   private async sendVerificationEmail (to: string, token: string) {
+    const frontBaseUrl = this.configService.get<string>('frontBaseUrl');
     await this.mailService.send({
       to,
       subject: 'Верифікація пошти на comments.com',
       message: 'Щоб підтвердити пошту, перейдіть за посиланням нижче. Посилання діє 1 годину.',
-      link: `https://comments.com/verifyEmail/${token}`,
+      link: `${frontBaseUrl}/verifyEmail/${token}`,
     });
   }
 
@@ -170,5 +174,31 @@ export class AuthService {
     const saltRounds = 10;
     const salt = await bcrypt.genSalt(saltRounds);
     return bcrypt.hash(password, salt);
+  }
+
+  private async checkSessions (userId: string) {
+    const tokens = await this.prisma.token.findMany({
+      where: {
+        userId,
+        type: TokenType.REFRESH,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    if (tokens.length >= SESSIONS) {
+      const { value } = tokens[0];
+      await this.prisma.token.delete({
+        where: { value },
+      });
+    }
+  }
+
+  async login (user: User) {
+    await this.checkSessions(user.id);
+    const tokens = this.getTokens(user);
+    await this.saveRefreshToken(user.id, tokens.refreshToken);
+    return tokens;
   }
 }
