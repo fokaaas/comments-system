@@ -10,6 +10,8 @@ import { PrismaService } from '../../database/prisma.service';
 import { TokenExpiredException } from '../../exceptions/token-expired.exception';
 import { JwtService } from '@nestjs/jwt';
 import { JwtConfig } from '../../configs/jwt.config';
+import { TooManyActionsException } from '../../exceptions/too-many-actions.exceptions';
+import { Rule } from 'eslint';
 
 const MINUTE = 1000 * 60;
 const HOUR = MINUTE * 60;
@@ -49,12 +51,7 @@ export class AuthService {
       },
     });
 
-    await this.mailService.send({
-      to: data.email,
-      subject: 'Верифікація пошти на comments.com',
-      message: 'Щоб підтвердити пошту, перейдіть за посиланням нижче. Посилання діє 1 годину.',
-      link: `https://comments.com/verifyEmail/${token}`,
-    });
+    await this.sendVerificationEmail(data.email, token);
   }
 
   async verify (token: string): Promise<{ accessToken: string, refreshToken: string }> {
@@ -76,8 +73,60 @@ export class AuthService {
         },
       },
     });
+    
+    const tokens = this.getTokens(user);
+    await this.saveRefreshToken(user.id, tokens.refreshToken);
+    return tokens;
+  }
 
-    return this.getTokens(user);
+  async requestVerification (email: string) {
+    const user = await this.userRepo.find({ email });
+    if (!user) throw new NotFoundException();
+
+    if (user.state !== State.PENDING) {
+      throw new AlreadyRegisteredException();
+    }
+
+    await this.checkVerificationRequests(email);
+
+    const token = v4();
+
+    await this.userRepo.updateById(user.id, {
+      tokens: {
+        create: {
+          value: token,
+          type: TokenType.EMAIL,
+        },
+      },
+    });
+    await this.sendVerificationEmail(user.email, token);
+  }
+
+  private async checkVerificationRequests (email: string) {
+    const dbToken = await this.prisma.token.findFirst({
+      where: {
+        type: TokenType.EMAIL,
+        user: {
+          email,
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (dbToken && (Date.now() - dbToken.createdAt.getTime() < MINUTE)) {
+      throw new TooManyActionsException();
+    }
+  }
+
+  private async sendVerificationEmail (to: string, token: string) {
+    await this.mailService.send({
+      to,
+      subject: 'Верифікація пошти на comments.com',
+      message: 'Щоб підтвердити пошту, перейдіть за посиланням нижче. Посилання діє 1 годину.',
+      link: `https://comments.com/verifyEmail/${token}`,
+    });
   }
 
   private getTokens (user: User): { accessToken: string, refreshToken: string } {
@@ -104,6 +153,17 @@ export class AuthService {
     });
 
     if (user) throw new AlreadyRegisteredException();
+  }
+  
+  private async saveRefreshToken (userId: string, token: string) {
+    await this.userRepo.updateById(userId, {
+      tokens: {
+        create: {
+          type: TokenType.REFRESH,
+          value: token,
+        },
+      },
+    });
   }
 
   private async hashPassword (password: string): Promise<string> {

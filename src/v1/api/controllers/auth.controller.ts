@@ -1,7 +1,8 @@
-import { Body, Controller, Param, Patch, Post, Res } from '@nestjs/common';
+import { Body, Controller, Param, Post, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { RegistrationDto } from '../dto/registration.dto';
+import { VerificationDto } from '../dto/verification.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -16,7 +17,7 @@ export class AuthController {
     return this.authService.register(body);
   }
 
-  @Patch('/verify/:token')
+  @Post('/register/verify/:token')
   async verify (
     @Param('token') token: string,
     @Res({ passthrough: true }) response: Response,
@@ -25,4 +26,12 @@ export class AuthController {
     response.cookie('refresh', refreshToken);
     return accessToken;
   }
+
+  @Post('/register/verify')
+  async requestVerification (
+    @Body() { email }: VerificationDto,
+  ) {
+    return this.authService.requestVerification(email);
+  }
+
 }

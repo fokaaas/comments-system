@@ -19,6 +19,7 @@ enum State {
 enum TokenType {
   EMAIL
   PASSWORD
+  REFRESH
 }
 
 model User {
