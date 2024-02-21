@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { CommentRepo } from '../../database/repos/comment.repo';
 import { CreateCommentDto } from '../dto/create-comment.dto';
 import { JSDOM } from 'jsdom';
@@ -6,11 +6,15 @@ import { QueryAllDTO, Sort, SortDTO } from '../dto/query-all.dto';
 import { DatabaseUtils } from '../../utils/database.utils';
 import { Comment } from '@prisma/client';
 import _ from 'lodash';
+import { FileService } from './file.service';
+import { FileType } from '@prisma/client';
+import sharp from 'sharp';
 
 @Injectable()
 export class CommentService {
   constructor (
     private commentRepo: CommentRepo,
+    private fileService: FileService,
   ) {}
 
   private allowedTags = ['a', 'code', 'i', 'strong'];
@@ -100,5 +104,39 @@ export class CommentService {
     };
 
     return await DatabaseUtils.paginate(this.commentRepo, query, data);
+  }
+
+  async saveImage (userId: string, commentId: string, file: Express.Multer.File) {
+    const comment = await this.commentRepo.findById(commentId);
+    if (userId !== comment?.userId) throw new ForbiddenException();
+
+    const image = await sharp(file.buffer)
+      .resize(320, 240)
+      .toBuffer();
+
+    const link = await this.fileService.saveByHash(image, 'images', file.originalname);
+    return this.commentRepo.updateById(commentId, {
+      files: {
+        create: {
+          type: FileType.PICTURE,
+          link,
+        },
+      },
+    });
+  }
+
+  async saveTxt (userId: string, commentId: string, file: Express.Multer.File) {
+    const comment = await this.commentRepo.findById(commentId);
+    if (userId !== comment?.userId) throw new ForbiddenException();
+
+    const link = await this.fileService.saveByHash(file.buffer, 'txt', file.originalname);
+    return this.commentRepo.updateById(commentId, {
+      files: {
+        create: {
+          type: FileType.TXT,
+          link,
+        },
+      },
+    });
   }
 }
