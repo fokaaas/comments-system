@@ -8,14 +8,9 @@ export class CommentRepo {
     private prisma: PrismaService,
   ) {}
 
-  private include = {
-    files: true,
-  };
-
   async create (data: Prisma.CommentUncheckedCreateInput) {
     return this.prisma.comment.create({
       data,
-      include: this.include,
     });
   }
 
@@ -23,14 +18,16 @@ export class CommentRepo {
     return this.prisma.comment.update({
       where: { id },
       data,
-      include: this.include,
     });
   }
 
-  async find (args: Prisma.CommentFindManyArgs) {
+  async findMany (args: Prisma.CommentFindManyArgs) {
     return this.prisma.comment.findMany({
       ...args,
-      include: this.include,
     });
+  }
+
+  async count (data: Prisma.CommentCountArgs) {
+    return this.prisma.comment.count(data);
   }
 }
