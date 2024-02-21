@@ -6,64 +6,72 @@ import { VerificationDto } from '../dto/verification.dto';
 import { LocalAuthGuard } from '../../security/guards/local-auth.guard';
 import { RefreshAuthGuard } from '../../security/guards/refresh-auth.guard';
 import { JwtAuthGuard } from '../../security/guards/jwt-auth.guard';
+import { ApiBearerAuth, ApiBody, ApiCookieAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { AccessTokenResponse } from '../responses/access-token.response';
+import { LoginDto } from '../dto/login.dto';
+import { UserResponse } from '../responses/user.response';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor (
-    private authService: AuthService,
-  ) {}
+  constructor (private authService: AuthService) {}
 
   @Post('/register')
-  async register (
-    @Body() body: RegistrationDto,
-  ) {
+  @ApiOperation({ summary: 'Register new user' })
+  async register (@Body() body: RegistrationDto) {
     return this.authService.register(body);
   }
 
   @Post('/register/verify/:token')
+  @ApiResponse({ type: AccessTokenResponse })
+  @ApiOperation({ summary: 'Verify token from email' })
   async verify (
     @Param('token') token: string,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const { refreshToken, ...accessToken } = await this.authService.verify(token);
+    const { refreshToken, ...accessToken } =
+      await this.authService.verify(token);
     response.cookie('refresh', refreshToken);
     return accessToken;
   }
 
   @Post('/register/verify')
-  async requestVerification (
-    @Body() { email }: VerificationDto,
-  ) {
+  @ApiOperation({ summary: 'Request one more verification' })
+  async requestVerification (@Body() { email }: VerificationDto) {
     return this.authService.requestVerification(email);
   }
 
+  @ApiBearerAuth()
   @UseGuards(LocalAuthGuard)
   @Post('/login')
-  async login (
-    @Req() req,
-    @Res({ passthrough: true }) response: Response,
-  ) {
-    const { refreshToken, ...accessToken } = await this.authService.loginOrRefresh(req.user);
+  @ApiBody({ type: LoginDto })
+  @ApiResponse({ type: AccessTokenResponse })
+  @ApiOperation({ summary: 'Login existing user' })
+  async login (@Req() req, @Res({ passthrough: true }) response: Response) {
+    const { refreshToken, ...accessToken } =
+      await this.authService.loginOrRefresh(req.user);
     response.cookie('refresh', refreshToken);
     return accessToken;
   }
 
+  @ApiCookieAuth()
   @UseGuards(RefreshAuthGuard)
   @Post('/refresh')
-  async refresh (
-    @Req() req,
-    @Res({ passthrough: true }) response: Response
-  ) {
-    const { refreshToken, ...accessToken } = await this.authService.loginOrRefresh(req.user);
+  @ApiResponse({ type: AccessTokenResponse })
+  @ApiOperation({ summary: 'Refresh access token by cookie' })
+  async refresh (@Req() req, @Res({ passthrough: true }) response: Response) {
+    const { refreshToken, ...accessToken } =
+      await this.authService.loginOrRefresh(req.user);
     response.cookie('refresh', refreshToken);
     return accessToken;
   }
 
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get('/me')
-  async getMe (
-    @Req() req,
-  ) {
+  @ApiResponse({ type: UserResponse })
+  @ApiOperation({ summary: 'Get information about current user' })
+  async getMe (@Req() req) {
     return req.user;
   }
 }
