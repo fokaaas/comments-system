@@ -53,7 +53,7 @@ FRONT_BASE_URL=
 Apply schema to your database:
 
 ```bash
-pnpm dlx prisma generate
+pnpm dlx prisma migrate
 ```
 
 Run application:
@@ -157,13 +157,15 @@ model SavedComment {
 
 ## Auth Model
 
+![image](https://github.com/fokaaas/comments-system/assets/114052215/95b9c3ff-e1e6-43da-9816-39be8b3f9dcd)
+
 ## File Saving & Storing
 
 All files are stored locally on the server using a hash in their name. A certain type of file has its own static folders.
 
 **static/images** for images and **static/txt** for txt files
 
-You can then access these files by following the link. (ex: http://127.0.0.1/images/name.png or http://127.0.0.1/txt/name.png)
+You can then access these files by following the link. (ex: http://127.0.0.1:3000/images/name.png or http://127.0.0.1:3000/txt/name.png)
 
 But currently the **current host doesn't support it** because it's free.
 
